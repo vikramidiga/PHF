@@ -4,3 +4,4 @@ altair
 openpyxl
 requests
 pyarrow
+matplotlib
