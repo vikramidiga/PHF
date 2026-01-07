@@ -9,11 +9,55 @@ st.set_page_config(page_title="Player Stats Dashboard", layout="wide")
 # CSS to inject for specific styling if needed
 st.markdown("""
 <style>
-    .stDataFrame th {
+    /* Force center alignment for all dataframe cells - multiple selectors for maximum coverage */
+    .stDataFrame th,
+    .stDataFrame td,
+    div[data-testid="stDataFrame"] table tbody tr td,
+    div[data-testid="stDataFrame"] table thead tr th,
+    div[data-testid="stDataFrame"] td,
+    div[data-testid="stDataFrame"] th,
+    .dataframe td,
+    .dataframe th,
+    table td,
+    table th {
         text-align: center !important;
     }
-    .stDataFrame td {
+    
+    /* Additional specific targeting for styled dataframes */
+    .row_heading,
+    .col_heading {
         text-align: center !important;
+    }
+    
+    /* Award box styling */
+    .award-box {
+        background: linear-gradient(135deg, rgba(255, 75, 75, 0.1) 0%, rgba(255, 75, 75, 0.05) 100%);
+        border: 2px solid rgba(255, 75, 75, 0.3);
+        border-radius: 15px;
+        padding: 20px;
+        text-align: center;
+        margin: 10px 0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .award-icon {
+        font-size: 48px;
+        margin-bottom: 10px;
+    }
+    
+    .award-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #ffffff;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .award-count {
+        font-size: 36px;
+        font-weight: bold;
+        color: #ff4b4b;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -359,6 +403,40 @@ else:
                 
                 st.markdown("#### Bowling Stats")
                 st.dataframe(df_bowl_prof.style.set_properties(**{'text-align': 'center'}), use_container_width=True)
+                
+                # Awards Section
+                st.markdown("#### Awards")
+                
+                # Get award counts
+                best_batter = int(player_row.get('BEST BATTER', 0)) if pd.notna(player_row.get('BEST BATTER', 0)) else 0
+                best_bowler = int(player_row.get('BEST BOWLER', 0)) if pd.notna(player_row.get('BEST BOWLER', 0)) else 0
+                potm = int(player_row.get('PLAYER OF THE MATCH', 0)) if pd.notna(player_row.get('PLAYER OF THE MATCH', 0)) else 0
+                
+                award_col1, award_col2, award_col3 = st.columns(3)
+                with award_col1:
+                    st.markdown(f"""
+                    <div class="award-box">
+                        <div class="award-icon">🏏</div>
+                        <div class="award-title">Best Batter</div>
+                        <div class="award-count">{best_batter}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with award_col2:
+                    st.markdown(f"""
+                    <div class="award-box">
+                        <div class="award-icon">🥎</div>
+                        <div class="award-title">Best Bowler</div>
+                        <div class="award-count">{best_bowler}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with award_col3:
+                    st.markdown(f"""
+                    <div class="award-box">
+                        <div class="award-icon">🏆</div>
+                        <div class="award-title">Player of the Match</div>
+                        <div class="award-count">{potm}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
         else:
             st.error("Name column missing.")
 
@@ -372,13 +450,16 @@ else:
             
             # Helper for metrics
             def safe_metric_fmt(val, is_int=False):
+                # Handle NaN, None, and empty values
+                if pd.isna(val) or val is None or str(val).lower() == 'nan':
+                    return "0" if is_int else "0.00"
                 try:
                     f = float(str(val).replace('*', ''))
                     if is_int:
                         return f"{int(f)}"
                     return f"{f:.2f}"
                 except:
-                    return str(val)
+                    return "0" if is_int else "0.00"
 
             cols = st.columns(len(players_to_compare))
             for idx, player in enumerate(players_to_compare):
@@ -394,6 +475,10 @@ else:
                     st.metric("Wickets", safe_metric_fmt(p_data.get('Overall_Bowling_Wkts', 0), is_int=True))
                     st.metric("Bowl Eco", safe_metric_fmt(p_data.get('Overall_Bowling_Eco', 0), is_int=False))
                     st.metric("Bowl Avg", safe_metric_fmt(p_data.get('Overall_Bowling_Avg', 0), is_int=False))
+                    st.markdown("---")
+                    st.metric("🏏 Best Batter", safe_metric_fmt(p_data.get('BEST BATTER', 0), is_int=True))
+                    st.metric("🥎 Best Bowler", safe_metric_fmt(p_data.get('BEST BOWLER', 0), is_int=True))
+                    st.metric("🏆 POTM", safe_metric_fmt(p_data.get('PLAYER OF THE MATCH', 0), is_int=True))
 
     # --- 3. Auction Dashboard ---
     with tab_auction:
@@ -405,36 +490,43 @@ else:
         with subtab_bat:
             st.markdown("#### Top Batsmen")
             # Filter cols
-            bat_cols = ['name', 'Overall_Batting_Runs', 'Overall_Batting_Avg', 'Overall_Batting_SR', 'Overall_Batting_Mat', 'Overall_Batting_HS', 'Overall_Batting_4s', 'Overall_Batting_6s', 'MVP_Points']
+            bat_cols = ['name', 'Overall_Batting_Runs', 'Overall_Batting_Avg', 'Overall_Batting_SR', 'Overall_Batting_Mat', 'Overall_Batting_HS', 'Overall_Batting_4s', 'Overall_Batting_6s', 'BEST BATTER', 'MVP_Points']
             # Rename for display
             bat_disp_map = {
                 'name': 'Name', 'Overall_Batting_Runs': 'Runs', 'Overall_Batting_Avg': 'Avg', 
                 'Overall_Batting_SR': 'SR', 'Overall_Batting_Mat': 'Mat', 'Overall_Batting_HS': 'HS',
-                'Overall_Batting_4s': '4s', 'Overall_Batting_6s': '6s', 'MVP_Points': 'MVP'
+                'Overall_Batting_4s': '4s', 'Overall_Batting_6s': '6s', 'BEST BATTER': '🏏 Awards', 'MVP_Points': 'MVP'
             }
             
             df_bat = df[bat_cols].copy()
             df_bat.rename(columns=bat_disp_map, inplace=True)
             
             # Ensure numeric for formatting
-            numeric_cols = ['Runs', 'Avg', 'SR', 'MVP', 'Mat', '4s', '6s']
+            numeric_cols = ['Runs', 'Avg', 'SR', 'MVP', 'Mat', '4s', '6s', '🏏 Awards']
             for col in numeric_cols:
                 df_bat[col] = pd.to_numeric(df_bat[col], errors='coerce').fillna(0)
             
             # Interactive Dataframe
+            styled_df = df_bat.style.format({
+                'Avg': "{:.2f}", 
+                'SR': "{:.2f}", 
+                'MVP': "{:.0f}",
+                'Runs': "{:.0f}",
+                'Mat': "{:.0f}",
+                'HS': "{:.0f}",
+                '4s': "{:.0f}",
+                '6s': "{:.0f}",
+                '🏏 Awards': "{:.0f}"
+            }).background_gradient(subset=['Runs', 'SR', 'MVP'], cmap='Greens')
+            
+            # Apply center alignment using set_table_styles
+            styled_df = styled_df.set_table_styles([
+                {'selector': 'th', 'props': [('text-align', 'center')]},
+                {'selector': 'td', 'props': [('text-align', 'center')]}
+            ])
+            
             st.dataframe(
-                df_bat.style.format({
-                    'Avg': "{:.2f}", 
-                    'SR': "{:.2f}", 
-                    'MVP': "{:.0f}",
-                    'Runs': "{:.0f}",
-                    'Mat': "{:.0f}",
-                    'HS': "{:.0f}",
-                    '4s': "{:.0f}",
-                    '6s': "{:.0f}"
-                })
-                .background_gradient(subset=['Runs', 'SR', 'MVP'], cmap='Greens')
-                .set_properties(**{'text-align': 'center'}),
+                styled_df,
                 use_container_width=True,
                 height=500
             )
@@ -467,33 +559,40 @@ else:
 
         with subtab_bowl:
             st.markdown("#### Top Bowlers")
-            bowl_cols = ['name', 'Overall_Bowling_Wkts', 'Overall_Bowling_Eco', 'Overall_Bowling_Avg', 'Overall_Bowling_SR', 'Overall_Bowling_Mat', 'Overall_Bowling_BB', 'MVP_Points']
+            bowl_cols = ['name', 'Overall_Bowling_Wkts', 'Overall_Bowling_Eco', 'Overall_Bowling_Avg', 'Overall_Bowling_SR', 'Overall_Bowling_Mat', 'Overall_Bowling_BB', 'BEST BOWLER', 'MVP_Points']
             bowl_disp_map = {
                 'name': 'Name', 'Overall_Bowling_Wkts': 'Wickets', 'Overall_Bowling_Eco': 'Eco',
                 'Overall_Bowling_Avg': 'Avg', 'Overall_Bowling_SR': 'SR', 'Overall_Bowling_Mat': 'Mat',
-                'Overall_Bowling_BB': 'Best', 'MVP_Points': 'MVP'
+                'Overall_Bowling_BB': 'Best', 'BEST BOWLER': '🥎 Awards', 'MVP_Points': 'MVP'
             }
             
             df_bowl = df[bowl_cols].copy()
             df_bowl.rename(columns=bowl_disp_map, inplace=True)
             
             # Ensure numeric for formatting
-            numeric_cols_bowl = ['Wickets', 'Eco', 'Avg', 'SR', 'MVP', 'Mat']
+            numeric_cols_bowl = ['Wickets', 'Eco', 'Avg', 'SR', 'MVP', 'Mat', '🥎 Awards']
             for col in numeric_cols_bowl:
                 df_bowl[col] = pd.to_numeric(df_bowl[col], errors='coerce').fillna(0)
             
             # Interactive Dataframe
+            styled_df_bowl = df_bowl.style.format({
+                'Eco': "{:.2f}", 
+                'Avg': "{:.2f}", 
+                'SR': "{:.2f}", 
+                'MVP': "{:.0f}",
+                'Wickets': "{:.0f}",
+                'Mat': "{:.0f}",
+                '🥎 Awards': "{:.0f}"
+            }).background_gradient(subset=['Wickets', 'Eco', 'MVP'], cmap='Blues')
+            
+            # Apply center alignment using set_table_styles
+            styled_df_bowl = styled_df_bowl.set_table_styles([
+                {'selector': 'th', 'props': [('text-align', 'center')]},
+                {'selector': 'td', 'props': [('text-align', 'center')]}
+            ])
+            
             st.dataframe(
-                df_bowl.style.format({
-                    'Eco': "{:.2f}", 
-                    'Avg': "{:.2f}", 
-                    'SR': "{:.2f}", 
-                    'MVP': "{:.0f}",
-                    'Wickets': "{:.0f}",
-                    'Mat': "{:.0f}"
-                })
-                .background_gradient(subset=['Wickets', 'Eco', 'MVP'], cmap='Blues')
-                .set_properties(**{'text-align': 'center'}),
+                styled_df_bowl,
                 use_container_width=True,
                 height=500
             )
@@ -528,36 +627,46 @@ else:
             # Filter for All-Rounders
             df_ar = df[df['Inferred_Role'] == 'All-Rounder'].copy()
             
-            ar_cols = ['name', 'MVP_Points', 'Overall_Batting_Runs', 'Overall_Bowling_Wkts', 'Overall_Batting_SR', 'Overall_Bowling_Eco']
+            ar_cols = ['name', 'MVP_Points', 'Overall_Batting_Runs', 'Overall_Bowling_Wkts', 'Overall_Batting_SR', 'Overall_Bowling_Eco', 'BEST BATTER', 'BEST BOWLER', 'PLAYER OF THE MATCH']
             ar_disp_map = {
                 'name': 'Name', 'MVP_Points': 'MVP Score', 
                 'Overall_Batting_Runs': 'Runs', 'Overall_Bowling_Wkts': 'Wickets',
-                'Overall_Batting_SR': 'Bat SR', 'Overall_Bowling_Eco': 'Bowl Eco'
+                'Overall_Batting_SR': 'Bat SR', 'Overall_Bowling_Eco': 'Bowl Eco',
+                'BEST BATTER': '🏏 Bat Awards', 'BEST BOWLER': '🥎 Bowl Awards', 'PLAYER OF THE MATCH': '🏆 POTM'
             }
             
             df_ar_view = df_ar[ar_cols].copy().rename(columns=ar_disp_map)
             
             # Ensure numeric
-            numeric_cols_ar = ['MVP Score', 'Bat SR', 'Bowl Eco', 'Runs', 'Wickets']
+            numeric_cols_ar = ['MVP Score', 'Bat SR', 'Bowl Eco', 'Runs', 'Wickets', '🏏 Bat Awards', '🥎 Bowl Awards', '🏆 POTM']
             for col in numeric_cols_ar:
                 df_ar_view[col] = pd.to_numeric(df_ar_view[col], errors='coerce').fillna(0)
             
             # Default Sort Descending by MVP Score
             df_ar_view = df_ar_view.sort_values(by='MVP Score', ascending=False)
             
+            
+            styled_df_ar = df_ar_view.style.format({
+                'MVP Score': "{:.0f}", 
+                'Bat SR': "{:.2f}", 
+                'Bowl Eco': "{:.2f}",
+                'Runs': "{:.0f}",
+                'Wickets': "{:.0f}",
+                '🏏 Bat Awards': "{:.0f}",
+                '🥎 Bowl Awards': "{:.0f}",
+                '🏆 POTM': "{:.0f}"
+            }).highlight_max(subset=['MVP Score'], color='lightgreen', axis=0)
+            
+            # Apply center alignment using set_table_styles
+            styled_df_ar = styled_df_ar.set_table_styles([
+                {'selector': 'th', 'props': [('text-align', 'center')]},
+                {'selector': 'td', 'props': [('text-align', 'center')]}
+            ])
+            
             st.dataframe(
-                df_ar_view.style.format({
-                    'MVP Score': "{:.0f}", 
-                    'Bat SR': "{:.2f}", 
-                    'Bowl Eco': "{:.2f}",
-                    'Runs': "{:.0f}",
-                    'Wickets': "{:.0f}"
-                })
-                .highlight_max(subset=['MVP Score'], color='lightgreen', axis=0)
-                .set_properties(**{'text-align': 'center'}),
+                styled_df_ar,
                 use_container_width=True,
                 height=800
             )
             
             # st.markdown("##### ⚖️ Balance of Play")
-            # st.bar_chart(df_ar.set_index('name')['MVP_Points'])
