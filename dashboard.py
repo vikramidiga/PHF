@@ -4,7 +4,7 @@ import requests
 import altair as alt
 
 # Set page config
-st.set_page_config(page_title="Player Stats Dashboard", layout="wide")
+st.set_page_config(page_title="PHF Auction Season 1 - Player Stats Dashboard", layout="wide")
 
 # CSS to inject for specific styling if needed
 st.markdown("""
