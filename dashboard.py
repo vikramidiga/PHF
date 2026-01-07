@@ -4,7 +4,7 @@ import requests
 import altair as alt
 
 # Set page config
-st.set_page_config(page_title="PHF Auction Season 1 - Player Stats Dashboard", layout="wide")
+st.set_page_config(page_title="🏆 PHF Premier Auction - Player Stats Dashboard", layout="wide")
 
 # CSS to inject for specific styling if needed
 st.markdown("""
@@ -63,7 +63,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Title
-st.title("🏏 Player Stats Dashboard")
+st.title("🏆 PHF Premier Auction Season 1 - Player Stats Dashboard")
 
 # Load the dataset
 @st.cache_data
